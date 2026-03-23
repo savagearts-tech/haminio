@@ -1,0 +1,7 @@
+D:\Workspace\haminioclient\src\test\java\io\github\haminio\bulkhead\BulkheadCategoryTest.java
+D:\Workspace\haminioclient\src\test\java\io\github\haminio\client\LoadBalancerStrategyTest.java
+D:\Workspace\haminioclient\src\test\java\io\github\haminio\endpoint\DefaultCircuitBreakerTest.java
+D:\Workspace\haminioclient\src\test\java\io\github\haminio\integration\HaMinioClientDualEndpointAliasIT.java
+D:\Workspace\haminioclient\src\test\java\io\github\haminio\integration\HaMinioClientTwinContainersIT.java
+D:\Workspace\haminioclient\src\test\java\io\github\haminio\integration\MinioMockServer.java
+D:\Workspace\haminioclient\src\test\java\io\github\haminio\interceptor\FailoverInterceptorTest.java
