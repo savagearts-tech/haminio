@@ -78,12 +78,19 @@ public class LoadBalancingInterceptor implements Interceptor {
 
     private Request rewrite(Request original, Endpoint target) {
         HttpUrl originalUrl = original.url();
-        HttpUrl.Builder newUrl = HttpUrl.parse(target.url()).newBuilder()
+        HttpUrl targetBase = HttpUrl.parse(target.url());
+        HttpUrl.Builder newUrl = targetBase.newBuilder()
                 .encodedPath(originalUrl.encodedPath())
                 .encodedQuery(originalUrl.encodedQuery());
+        // Must include port in Host header for non-standard ports (e.g. :9000).
+        // AWS Signature V4 signs the Host header; omitting the port causes
+        // SignatureDoesNotMatch when MinIO is not on the default HTTP/HTTPS port.
+        String hostHeader = targetBase.port() == 80 || targetBase.port() == 443
+                ? targetBase.host()
+                : targetBase.host() + ":" + targetBase.port();
         return original.newBuilder()
                 .url(newUrl.build())
-                .header("Host", HttpUrl.parse(target.url()).host())
+                .header("Host", hostHeader)
                 .build();
     }
 

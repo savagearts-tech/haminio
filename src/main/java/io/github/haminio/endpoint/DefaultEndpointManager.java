@@ -81,7 +81,9 @@ public class DefaultEndpointManager implements EndpointManager {
             return t;
         });
         long intervalMs = healthCheckInterval.toMillis();
-        scheduler.scheduleAtFixedRate(this::probeAll, intervalMs, intervalMs, TimeUnit.MILLISECONDS);
+        // initialDelay=0: probe immediately on start so circuit breakers reflect
+        // actual endpoint health before the first request is dispatched.
+        scheduler.scheduleAtFixedRate(this::probeAll, 0, intervalMs, TimeUnit.MILLISECONDS);
         log.info("Health checker started; interval={}ms, endpoints={}", intervalMs, allEndpoints);
     }
 
