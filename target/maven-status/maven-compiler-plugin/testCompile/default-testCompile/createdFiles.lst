@@ -1,0 +1,14 @@
+io\github\haminio\client\LoadBalancerStrategyTest$FixedHealthy.class
+io\github\haminio\integration\HaMinioClientDualEndpointAliasIT.class
+io\github\haminio\integration\MinioMockServer$S3Dispatcher.class
+io\github\haminio\client\LoadBalancerStrategyTest.class
+io\github\haminio\bulkhead\BulkheadCategoryTest.class
+io\github\haminio\endpoint\DefaultCircuitBreakerTest.class
+io\github\haminio\integration\HaMinioClientTwinContainersIT.class
+io\github\haminio\endpoint\DefaultEndpointManagerTest.class
+io\github\haminio\example\HaMinioClientExample.class
+io\github\haminio\interceptor\FailoverInterceptorTest$1.class
+io\github\haminio\example\MinioQuickstartExample.class
+io\github\haminio\integration\MinioMockServer.class
+io\github\haminio\interceptor\FailoverInterceptorTest.class
+io\github\haminio\interceptor\HostHeaderTest.class

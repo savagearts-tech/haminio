@@ -119,19 +119,12 @@ public class FailoverInterceptor implements Interceptor {
     private Request rewrite(Request original, Endpoint target) {
         HttpUrl originalUrl = original.url();
         HttpUrl newBase = HttpUrl.parse(target.url());
-        // Must include port in Host header for non-standard ports (e.g. :9000).
-        // AWS Signature V4 signs the Host header; omitting the port causes
-        // SignatureDoesNotMatch when MinIO is not on the default HTTP/HTTPS port.
-        String hostHeader = newBase.port() == 80 || newBase.port() == 443
-                ? newBase.host()
-                : newBase.host() + ":" + newBase.port();
         HttpUrl newUrl = newBase.newBuilder()
                 .encodedPath(originalUrl.encodedPath())
                 .encodedQuery(originalUrl.encodedQuery())
                 .build();
         return original.newBuilder()
                 .url(newUrl)
-                .header("Host", hostHeader)
                 .build();
     }
 

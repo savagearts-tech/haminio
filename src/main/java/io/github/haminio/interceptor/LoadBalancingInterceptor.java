@@ -82,15 +82,8 @@ public class LoadBalancingInterceptor implements Interceptor {
         HttpUrl.Builder newUrl = targetBase.newBuilder()
                 .encodedPath(originalUrl.encodedPath())
                 .encodedQuery(originalUrl.encodedQuery());
-        // Must include port in Host header for non-standard ports (e.g. :9000).
-        // AWS Signature V4 signs the Host header; omitting the port causes
-        // SignatureDoesNotMatch when MinIO is not on the default HTTP/HTTPS port.
-        String hostHeader = targetBase.port() == 80 || targetBase.port() == 443
-                ? targetBase.host()
-                : targetBase.host() + ":" + targetBase.port();
         return original.newBuilder()
                 .url(newUrl.build())
-                .header("Host", hostHeader)
                 .build();
     }
 
@@ -99,9 +92,11 @@ public class LoadBalancingInterceptor implements Interceptor {
         return req.url().queryParameter("uploadId");
     }
 
-    /** True if the request is UploadPart, CompleteMultipartUpload, or AbortMultipartUpload. */
+    /**
+     * True if the request is UploadPart, CompleteMultipartUpload, or
+     * AbortMultipartUpload.
+     */
     private boolean isTerminalMultipartOperation(Request req) {
-        String path = req.url().encodedPath();
         String query = req.url().encodedQuery();
         // Complete/Abort: POST/DELETE with uploadId and no partNumber
         return query != null && query.contains("uploadId=")
@@ -120,11 +115,13 @@ public class LoadBalancingInterceptor implements Interceptor {
     private String extractUploadIdFromResponse(Response response) throws IOException {
         // Parse <UploadId>...</UploadId> from the XML response body
         okhttp3.ResponseBody body = response.peekBody(Long.MAX_VALUE);
-        if (body == null) return null;
+        if (body == null)
+            return null;
         String xml = body.string();
         int start = xml.indexOf("<UploadId>");
         int end = xml.indexOf("</UploadId>");
-        if (start < 0 || end < 0) return null;
+        if (start < 0 || end < 0)
+            return null;
         return xml.substring(start + "<UploadId>".length(), end);
     }
 
