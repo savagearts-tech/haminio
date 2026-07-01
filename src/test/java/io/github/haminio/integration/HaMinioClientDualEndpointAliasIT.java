@@ -107,4 +107,31 @@ class HaMinioClientDualEndpointAliasIT {
 
         haClient.removeObject(RemoveObjectArgs.builder().bucket(bucket).object(key).build());
     }
+
+    @Test
+    void roundRobinAsyncPutAcrossLogicalEndpoints() throws Exception {
+        // Fire 10 async upload requests concurrently to verify they all succeed
+        // across the round-robin logical endpoints.
+        java.util.List<java.util.concurrent.CompletableFuture<io.minio.ObjectWriteResponse>> futures = new java.util.ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            String key = "obj-async-" + i + "-" + UUID.randomUUID();
+            byte[] payload = ("e2e-dual-alias-async-" + i).getBytes(StandardCharsets.UTF_8);
+            
+            futures.add(haClient.putObjectAsync(PutObjectArgs.builder()
+                    .bucket(bucket)
+                    .object(key)
+                    .stream(new ByteArrayInputStream(payload), payload.length, -1)
+                    .build()));
+        }
+
+        // Wait for all async uploads to finish
+        java.util.concurrent.CompletableFuture.allOf(futures.toArray(new java.util.concurrent.CompletableFuture[0])).join();
+
+        // Verify we can read one of them
+        String testKey = futures.get(5).join().object();
+        try (GetObjectResponse resp = haClient.getObject(
+                GetObjectArgs.builder().bucket(bucket).object(testKey).build())) {
+            assertEquals("e2e-dual-alias-async-5", new String(resp.readAllBytes(), StandardCharsets.UTF_8));
+        }
+    }
 }

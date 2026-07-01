@@ -11,6 +11,7 @@ import io.github.haminio.observability.MinioEventListener;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.minio.MinioClient;
+import io.minio.MinioAsyncClient;
 import okhttp3.ConnectionPool;
 import okhttp3.OkHttpClient;
 
@@ -109,6 +110,18 @@ public class HaMinioClientFactory {
                 .httpClient(largeClient)
                 .build();
 
+        MinioAsyncClient smallAsyncClient = MinioAsyncClient.builder()
+                .endpoint(primaryUrl)
+                .credentials(config.accessKey(), config.secretKey())
+                .httpClient(smallClient)
+                .build();
+
+        MinioAsyncClient largeAsyncClient = MinioAsyncClient.builder()
+                .endpoint(primaryUrl)
+                .credentials(config.accessKey(), config.secretKey())
+                .httpClient(largeClient)
+                .build();
+
         // ── 7. Observability: ConnectionPool gauges (C4) + endpoint health ────
         ConnectionPoolMetrics.bind(registry, smallClient, largeClient);
         ConnectionPoolMetrics.bindEndpointHealth(registry, config.endpoints(), endpointManager);
@@ -117,6 +130,6 @@ public class HaMinioClientFactory {
         BulkheadCategory bulkhead = new BulkheadCategory(config.bulkheadSizeThresholdBytes());
         endpointManager.start();
 
-        return new HaMinioClient(smallMinioClient, largeMinioClient, bulkhead, endpointManager);
+        return new HaMinioClient(smallMinioClient, largeMinioClient, smallAsyncClient, largeAsyncClient, bulkhead, endpointManager);
     }
 }

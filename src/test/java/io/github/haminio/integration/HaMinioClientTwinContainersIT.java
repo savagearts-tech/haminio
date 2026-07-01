@@ -121,6 +121,29 @@ class HaMinioClientTwinContainersIT {
         removeObjectDirect(serverB, bucket, key);
     }
 
+    @Test
+    void haPutAsync_thenReplicate_thenGetSucceedsOnEitherNode() throws Exception {
+        String key     = "ha-put-async-" + UUID.randomUUID();
+        byte[] payload = "written-by-ha-async".getBytes(StandardCharsets.UTF_8);
+
+        haClient.putObjectAsync(PutObjectArgs.builder()
+                .bucket(bucket)
+                .object(key)
+                .stream(new ByteArrayInputStream(payload), payload.length, -1)
+                .build()).join();
+
+        // Replicate to the node that is missing the object
+        replicateToMissingNode(bucket, key);
+
+        try (GetObjectResponse resp = haClient.getObject(
+                GetObjectArgs.builder().bucket(bucket).object(key).build())) {
+            assertEquals("written-by-ha-async", new String(resp.readAllBytes(), StandardCharsets.UTF_8));
+        }
+
+        removeObjectDirect(serverA, bucket, key);
+        removeObjectDirect(serverB, bucket, key);
+    }
+
     // ── Direct store helpers ──────────────────────────────────────────────────
 
     private void replicateToMissingNode(String b, String key) {

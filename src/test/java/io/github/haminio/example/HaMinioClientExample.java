@@ -113,6 +113,21 @@ public class HaMinioClientExample {
                         }
                         System.out.println("📤  对象上传成功: " + OBJECT_KEY);
 
+                        // ── 4.5 异步上传对象（putObjectAsync） ──────────────────────────────────
+                        String asyncObjectKey = "demo/async-greeting.txt";
+                        byte[] asyncPayload = "Hello from Async HaMinioClient! ⚡".getBytes(StandardCharsets.UTF_8);
+
+                        try (InputStream asyncInputStream = new ByteArrayInputStream(asyncPayload)) {
+                                haClient.putObjectAsync(
+                                                PutObjectArgs.builder()
+                                                                .bucket(BUCKET_NAME)
+                                                                .object(asyncObjectKey)
+                                                                .stream(asyncInputStream, asyncPayload.length, -1)
+                                                                .contentType("text/plain; charset=utf-8")
+                                                                .build()).join();
+                        }
+                        System.out.println("📤  对象异步上传成功: " + asyncObjectKey);
+
                         // ── 5. 查询对象元信息（statObject） ──────────────────────────────
                         StatObjectResponse stat = haClient.statObject(
                                         StatObjectArgs.builder()
