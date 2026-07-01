@@ -13,8 +13,6 @@ import io.minio.StatObjectArgs;
 import io.minio.StatObjectResponse;
 import io.minio.RemoveObjectArgs;
 import io.minio.messages.Item;
-import io.minio.MinioAsyncClient;
-import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,21 +31,15 @@ public class HaMinioClient implements AutoCloseable {
 
     private final MinioClient smallClient;
     private final MinioClient largeClient;
-    private final MinioAsyncClient smallAsyncClient;
-    private final MinioAsyncClient largeAsyncClient;
     private final BulkheadCategory bulkhead;
     private final EndpointManager endpointManager;
 
     HaMinioClient(MinioClient smallClient,
                   MinioClient largeClient,
-                  MinioAsyncClient smallAsyncClient,
-                  MinioAsyncClient largeAsyncClient,
                   BulkheadCategory bulkhead,
                   EndpointManager endpointManager) {
         this.smallClient = smallClient;
         this.largeClient = largeClient;
-        this.smallAsyncClient = smallAsyncClient;
-        this.largeAsyncClient = largeAsyncClient;
         this.bulkhead = bulkhead;
         this.endpointManager = endpointManager;
     }
@@ -73,19 +65,6 @@ public class HaMinioClient implements AutoCloseable {
         return category == BulkheadCategory.Category.LARGE
                 ? largeClient.putObject(args)
                 : smallClient.putObject(args);
-    }
-
-    /**
-     * Asynchronously uploads an object. Selects SMALL or LARGE async pool based on object size.
-     * Unknown size (-1) conservatively routes to LARGE pool.
-     */
-    public CompletableFuture<ObjectWriteResponse> putObjectAsync(PutObjectArgs args) throws Exception {
-        long size = args.objectSize();
-        BulkheadCategory.Category category = bulkhead.classify(size);
-        log.debug("putObjectAsync size={} → {} async pool", size, category);
-        return category == BulkheadCategory.Category.LARGE
-                ? largeAsyncClient.putObject(args)
-                : smallAsyncClient.putObject(args);
     }
 
     /**

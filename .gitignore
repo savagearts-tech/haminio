@@ -24,11 +24,26 @@ hs_err_pid*
 replay_pid*
 
 
-#AI 目录
+# AI / Agent 工具相关
 openspec/
 .agent/
 .cursor/
+.cursorrules
+.gemini/
+.aider/
+.cline/
+.roo/
+.codeium/
+.copilot/
+AGENTS.md
+
+# 构建与工程无关的内容
 .mvn/
 .vscode/
+.idea/
+*.iml
 target/
-AGENTS.md
+
+# 操作系统相关
+.DS_Store
+Thumbs.db

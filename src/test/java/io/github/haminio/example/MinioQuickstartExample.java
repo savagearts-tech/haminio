@@ -47,7 +47,7 @@ public class MinioQuickstartExample {
         private static final String SECRET_KEY = System.getenv().getOrDefault("MINIO_SECRET_KEY", "minioadmin");
         private static final String BUCKET_NAME = "my-example-bucket";
         private static final String OBJECT_KEY = "hello/world.txt";
-        private static final String OBJECT_CONTENT = "Hello from HaMinioClient example! 🎉";
+        private static final String OBJECT_CONTENT = "Hello from HaMinioClient example!";
 
         public static void main(String[] args) throws Exception {
 
@@ -57,19 +57,19 @@ public class MinioQuickstartExample {
                                 .credentials(ACCESS_KEY, SECRET_KEY)
                                 .build();
 
-                System.out.println("✅ MinioClient 已连接至: " + MINIO_ENDPOINT);
+                System.out.println("[OK] MinioClient 已连接至: " + MINIO_ENDPOINT);
 
                 // ── 2. 创建 Bucket（若不存在） ────────────────────────────────────────
                 boolean exists = client.bucketExists(
                                 BucketExistsArgs.builder().bucket(BUCKET_NAME).build());
 
                 if (exists) {
-                        System.out.println("ℹ️  Bucket 已存在: " + BUCKET_NAME);
+                        System.out.println("[Info] Bucket 已存在: " + BUCKET_NAME);
                         client.removeBucket(RemoveBucketArgs.builder().bucket(BUCKET_NAME).build());
                 } else {
                         client.makeBucket(
                                         MakeBucketArgs.builder().bucket(BUCKET_NAME).build());
-                        System.out.println("🪣  Bucket 创建成功: " + BUCKET_NAME);
+                        System.out.println("[Bucket] Bucket 创建成功: " + BUCKET_NAME);
                 }
 
                 // ── 3. 上传对象 ───────────────────────────────────────────────────────
@@ -84,7 +84,7 @@ public class MinioQuickstartExample {
                                                         .contentType("text/plain; charset=utf-8")
                                                         .build());
                 }
-                System.out.println("📤  对象上传成功: " + OBJECT_KEY);
+                System.out.println("[Upload] 对象上传成功: " + OBJECT_KEY);
 
                 // ── 4. 查询对象元信息（验证上传） ────────────────────────────────────
                 StatObjectResponse stat = client.statObject(
@@ -93,7 +93,7 @@ public class MinioQuickstartExample {
                                                 .object(OBJECT_KEY)
                                                 .build());
 
-                System.out.printf("📋  对象元信息 → size=%d bytes, etag=%s, contentType=%s%n",
+                System.out.printf("[Stat] 对象元信息 -> size=%d bytes, etag=%s, contentType=%s%n",
                                 stat.size(), stat.etag(), stat.contentType());
 
                 // ── 5. 下载并读取对象内容 ─────────────────────────────────────────────
@@ -104,9 +104,9 @@ public class MinioQuickstartExample {
                                                 .build())) {
 
                         String content = new String(response.readAllBytes(), StandardCharsets.UTF_8);
-                        System.out.println("📥  读取对象内容: " + content);
+                        System.out.println("[Download] 读取对象内容: " + content);
                 }
 
-                System.out.println("\n✅ 示例运行完成！");
+                System.out.println("\n[OK] 示例运行完成！");
         }
 }

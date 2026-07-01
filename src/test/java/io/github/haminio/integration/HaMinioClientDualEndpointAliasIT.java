@@ -1,6 +1,7 @@
 package io.github.haminio.integration;
 
 import io.github.haminio.client.HaMinioClient;
+import io.github.haminio.client.HaMinioAsyncClient;
 import io.github.haminio.client.HaMinioClientConfig;
 import io.github.haminio.client.HaMinioClientFactory;
 import io.github.haminio.client.LoadBalancingStrategy;
@@ -40,6 +41,7 @@ class HaMinioClientDualEndpointAliasIT {
     private MinioMockServer mockServer;
     private String bucket;
     private HaMinioClient haClient;
+    private HaMinioAsyncClient haAsyncClient;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -72,12 +74,16 @@ class HaMinioClientDualEndpointAliasIT {
                 .build();
 
         haClient = HaMinioClientFactory.create(config);
+        haAsyncClient = HaMinioClientFactory.createAsync(config);
     }
 
     @AfterEach
     void tearDown() throws Exception {
         if (haClient != null) {
             haClient.close();
+        }
+        if (haAsyncClient != null) {
+            haAsyncClient.close();
         }
         if (mockServer != null) {
             mockServer.close();
@@ -117,7 +123,7 @@ class HaMinioClientDualEndpointAliasIT {
             String key = "obj-async-" + i + "-" + UUID.randomUUID();
             byte[] payload = ("e2e-dual-alias-async-" + i).getBytes(StandardCharsets.UTF_8);
             
-            futures.add(haClient.putObjectAsync(PutObjectArgs.builder()
+            futures.add(haAsyncClient.putObjectAsync(PutObjectArgs.builder()
                     .bucket(bucket)
                     .object(key)
                     .stream(new ByteArrayInputStream(payload), payload.length, -1)

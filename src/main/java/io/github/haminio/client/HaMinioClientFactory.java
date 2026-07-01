@@ -40,12 +40,14 @@ public class HaMinioClientFactory {
         };
     }
 
-    public static HaMinioClient create(HaMinioClientConfig config) {
-        return create(config, new SimpleMeterRegistry());
-    }
+    private record SharedInfrastructure(
+            OkHttpClient smallClient,
+            OkHttpClient largeClient,
+            EndpointManager endpointManager,
+            String primaryUrl
+    ) {}
 
-    public static HaMinioClient create(HaMinioClientConfig config, MeterRegistry registry) {
-
+    private static SharedInfrastructure buildShared(HaMinioClientConfig config, MeterRegistry registry) {
         // ── 1. Endpoint Manager (health tracking + circuit breakers) ──────────
         DefaultEndpointManager endpointManager = new DefaultEndpointManager(
                 config.endpoints(),
@@ -65,8 +67,6 @@ public class HaMinioClientFactory {
                 new FailoverInterceptor(endpointManager, config.maxRetries(), config.retryBaseDelay());
 
         // ── 4. SMALL OkHttpClient (delegates pool to OkHttp ConnectionPool) ───
-        // Use the first endpoint URL as the "primary" for event-listener tagging;
-        // the LB interceptor will rewrite the actual target per-request.
         String primaryUrl = config.endpoints().get(0).url();
 
         ConnectionPool smallPool = new ConnectionPool(
@@ -96,40 +96,60 @@ public class HaMinioClientFactory {
                 .writeTimeout(java.time.Duration.ofHours(2))
                 .build();
 
-        // ── 6. MinioClient instances (injected with our OkHttpClients) ────────
-        // Per design: inject custom OkHttpClient via MinioClient.builder() — NOT via subclassing.
-        MinioClient smallMinioClient = MinioClient.builder()
-                .endpoint(primaryUrl)
-                .credentials(config.accessKey(), config.secretKey())
-                .httpClient(smallClient)
-                .build();
-
-        MinioClient largeMinioClient = MinioClient.builder()
-                .endpoint(primaryUrl)
-                .credentials(config.accessKey(), config.secretKey())
-                .httpClient(largeClient)
-                .build();
-
-        MinioAsyncClient smallAsyncClient = MinioAsyncClient.builder()
-                .endpoint(primaryUrl)
-                .credentials(config.accessKey(), config.secretKey())
-                .httpClient(smallClient)
-                .build();
-
-        MinioAsyncClient largeAsyncClient = MinioAsyncClient.builder()
-                .endpoint(primaryUrl)
-                .credentials(config.accessKey(), config.secretKey())
-                .httpClient(largeClient)
-                .build();
-
-        // ── 7. Observability: ConnectionPool gauges (C4) + endpoint health ────
+        // ── 6. Observability: ConnectionPool gauges (C4) + endpoint health ────
         ConnectionPoolMetrics.bind(registry, smallClient, largeClient);
         ConnectionPoolMetrics.bindEndpointHealth(registry, config.endpoints(), endpointManager);
 
-        // ── 8. Assemble and start ─────────────────────────────────────────────
-        BulkheadCategory bulkhead = new BulkheadCategory(config.bulkheadSizeThresholdBytes());
-        endpointManager.start();
+        return new SharedInfrastructure(smallClient, largeClient, endpointManager, primaryUrl);
+    }
 
-        return new HaMinioClient(smallMinioClient, largeMinioClient, smallAsyncClient, largeAsyncClient, bulkhead, endpointManager);
+    public static HaMinioClient create(HaMinioClientConfig config) {
+        return create(config, new SimpleMeterRegistry());
+    }
+
+    public static HaMinioClient create(HaMinioClientConfig config, MeterRegistry registry) {
+        SharedInfrastructure shared = buildShared(config, registry);
+
+        MinioClient smallMinioClient = MinioClient.builder()
+                .endpoint(shared.primaryUrl())
+                .credentials(config.accessKey(), config.secretKey())
+                .httpClient(shared.smallClient())
+                .build();
+
+        MinioClient largeMinioClient = MinioClient.builder()
+                .endpoint(shared.primaryUrl())
+                .credentials(config.accessKey(), config.secretKey())
+                .httpClient(shared.largeClient())
+                .build();
+
+        BulkheadCategory bulkhead = new BulkheadCategory(config.bulkheadSizeThresholdBytes());
+        shared.endpointManager().start();
+
+        return new HaMinioClient(smallMinioClient, largeMinioClient, bulkhead, shared.endpointManager());
+    }
+
+    public static HaMinioAsyncClient createAsync(HaMinioClientConfig config) {
+        return createAsync(config, new SimpleMeterRegistry());
+    }
+
+    public static HaMinioAsyncClient createAsync(HaMinioClientConfig config, MeterRegistry registry) {
+        SharedInfrastructure shared = buildShared(config, registry);
+
+        MinioAsyncClient smallAsyncClient = MinioAsyncClient.builder()
+                .endpoint(shared.primaryUrl())
+                .credentials(config.accessKey(), config.secretKey())
+                .httpClient(shared.smallClient())
+                .build();
+
+        MinioAsyncClient largeAsyncClient = MinioAsyncClient.builder()
+                .endpoint(shared.primaryUrl())
+                .credentials(config.accessKey(), config.secretKey())
+                .httpClient(shared.largeClient())
+                .build();
+
+        BulkheadCategory bulkhead = new BulkheadCategory(config.bulkheadSizeThresholdBytes());
+        shared.endpointManager().start();
+
+        return new HaMinioAsyncClient(smallAsyncClient, largeAsyncClient, bulkhead, shared.endpointManager());
     }
 }

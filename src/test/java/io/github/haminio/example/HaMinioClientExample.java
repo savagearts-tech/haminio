@@ -1,6 +1,7 @@
 package io.github.haminio.example;
 
 import io.github.haminio.client.HaMinioClient;
+import io.github.haminio.client.HaMinioAsyncClient;
 import io.github.haminio.client.HaMinioClientConfig;
 import io.github.haminio.client.HaMinioClientFactory;
 import io.github.haminio.client.LoadBalancingStrategy;
@@ -61,7 +62,7 @@ public class HaMinioClientExample {
         private static final String SECRET_KEY = System.getenv().getOrDefault("MINIO_SECRET_KEY", "minioadmin");
         private static final String BUCKET_NAME = "ha-example-bucket";
         private static final String OBJECT_KEY = "demo/greeting.txt";
-        private static final String OBJECT_CONTENT = "Hello from HaMinioClient (HA Edition)! 🚀";
+        private static final String OBJECT_CONTENT = "Hello from HaMinioClient (HA Edition)!";
 
         public static void main(String[] args) throws Exception {
 
@@ -87,10 +88,11 @@ public class HaMinioClientExample {
 
                 // ── 2. 创建 HaMinioClient ─────────────────────────────────────────────
                 // try-with-resources 确保客户端关闭时停止端点健康检查线程
-                try (HaMinioClient haClient = HaMinioClientFactory.create(config)) {
+                try (HaMinioClient haClient = HaMinioClientFactory.create(config);
+                     HaMinioAsyncClient haAsyncClient = HaMinioClientFactory.createAsync(config)) {
 
-                        System.out.println("✅ HaMinioClient 已就绪，端点: " + ENDPOINTS);
-                        System.out.println("🔑  使用凭据 AccessKey=" + ACCESS_KEY
+                        System.out.println("[OK] HaMinioClient 已就绪，端点: " + ENDPOINTS);
+                        System.out.println("[Auth] 使用凭据 AccessKey=" + ACCESS_KEY
                                         + (System.getenv("MINIO_ACCESS_KEY") != null ? " (来自环境变量)"
                                                         : " (默认值，如有误请设置 MINIO_ACCESS_KEY)"));
 
@@ -111,14 +113,14 @@ public class HaMinioClientExample {
                                                                 .contentType("text/plain; charset=utf-8")
                                                                 .build());
                         }
-                        System.out.println("📤  对象上传成功: " + OBJECT_KEY);
+                        System.out.println("[Upload] 对象上传成功: " + OBJECT_KEY);
 
                         // ── 4.5 异步上传对象（putObjectAsync） ──────────────────────────────────
                         String asyncObjectKey = "demo/async-greeting.txt";
-                        byte[] asyncPayload = "Hello from Async HaMinioClient! ⚡".getBytes(StandardCharsets.UTF_8);
+                        byte[] asyncPayload = "Hello from Async HaMinioClient!".getBytes(StandardCharsets.UTF_8);
 
                         try (InputStream asyncInputStream = new ByteArrayInputStream(asyncPayload)) {
-                                haClient.putObjectAsync(
+                                haAsyncClient.putObjectAsync(
                                                 PutObjectArgs.builder()
                                                                 .bucket(BUCKET_NAME)
                                                                 .object(asyncObjectKey)
@@ -126,7 +128,7 @@ public class HaMinioClientExample {
                                                                 .contentType("text/plain; charset=utf-8")
                                                                 .build()).join();
                         }
-                        System.out.println("📤  对象异步上传成功: " + asyncObjectKey);
+                        System.out.println("[Upload] 对象异步上传成功: " + asyncObjectKey);
 
                         // ── 5. 查询对象元信息（statObject） ──────────────────────────────
                         StatObjectResponse stat = haClient.statObject(
@@ -135,7 +137,7 @@ public class HaMinioClientExample {
                                                         .object(OBJECT_KEY)
                                                         .build());
 
-                        System.out.printf("📋  对象元信息 → size=%d bytes, etag=%s%n",
+                        System.out.printf("[Stat] 对象元信息 -> size=%d bytes, etag=%s%n",
                                         stat.size(), stat.etag());
 
                         // ── 6. 下载并读取对象内容（getObject） ───────────────────────────
@@ -146,10 +148,10 @@ public class HaMinioClientExample {
                                                         .build())) {
 
                                 String content = new String(response.readAllBytes(), StandardCharsets.UTF_8);
-                                System.out.println("📥  读取对象内容: " + content);
+                                System.out.println("[Download] 读取对象内容: " + content);
                         }
 
-                        System.out.println("\n✅ HA 示例运行完成！");
+                        System.out.println("\n[OK] HA 示例运行完成！");
 
                 } // haClient.close() 在此处自动调用，停止后台健康检查
         }
@@ -169,13 +171,14 @@ public class HaMinioClientExample {
                                 BucketExistsArgs.builder().bucket(bucket).build());
 
                 if (exists) {
-                        System.out.println("ℹ️  Bucket 已存在: " + bucket);
+                        System.out.println("[Info] Bucket 已存在: " + bucket);
                         adminClient.removeObject(RemoveObjectArgs.builder().bucket(bucket).object(OBJECT_KEY).build());
+                        adminClient.removeObject(RemoveObjectArgs.builder().bucket(bucket).object("demo/async-greeting.txt").build());
                         adminClient.removeBucket(RemoveBucketArgs.builder().bucket(bucket).build());
                 }
 
                 adminClient.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
-                System.out.println("🪣  Bucket 创建成功: " + bucket);
+                System.out.println("[Bucket] Bucket 创建成功: " + bucket);
 
         }
 }

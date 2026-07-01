@@ -1,6 +1,7 @@
 package io.github.haminio.integration;
 
 import io.github.haminio.client.HaMinioClient;
+import io.github.haminio.client.HaMinioAsyncClient;
 import io.github.haminio.client.HaMinioClientConfig;
 import io.github.haminio.client.HaMinioClientFactory;
 import io.github.haminio.client.LoadBalancingStrategy;
@@ -39,6 +40,7 @@ class HaMinioClientTwinContainersIT {
     private String urlB;
     private String bucket;
     private HaMinioClient haClient;
+    private HaMinioAsyncClient haAsyncClient;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -64,12 +66,16 @@ class HaMinioClientTwinContainersIT {
                 .build();
 
         haClient = HaMinioClientFactory.create(config);
+        haAsyncClient = HaMinioClientFactory.createAsync(config);
     }
 
     @AfterEach
     void tearDown() throws Exception {
         if (haClient != null) {
             haClient.close();
+        }
+        if (haAsyncClient != null) {
+            haAsyncClient.close();
         }
         if (serverA != null) serverA.close();
         if (serverB != null) serverB.close();
@@ -126,7 +132,7 @@ class HaMinioClientTwinContainersIT {
         String key     = "ha-put-async-" + UUID.randomUUID();
         byte[] payload = "written-by-ha-async".getBytes(StandardCharsets.UTF_8);
 
-        haClient.putObjectAsync(PutObjectArgs.builder()
+        haAsyncClient.putObjectAsync(PutObjectArgs.builder()
                 .bucket(bucket)
                 .object(key)
                 .stream(new ByteArrayInputStream(payload), payload.length, -1)
